@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  payload:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    depends_on:
+      mongo:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      DATABASE_URI: mongodb://mongo:27017/payload-ecommerce
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:3000/api/healthz']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  mongo:
+    image: mongo:6
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:27017:27017'
+    command:
+      - --storageEngine=wiredTiger
+    volumes:
+      - data:/data/db
+    logging:
+      driver: none
+    healthcheck:
+      test: ['CMD', 'mongosh', '--eval', "db.adminCommand('ping')"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  data:
